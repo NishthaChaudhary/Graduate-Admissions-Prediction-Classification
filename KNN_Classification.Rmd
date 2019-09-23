@@ -1,0 +1,137 @@
+
+
+```{r}
+#Load the dataset and view the data
+
+library(readxl)
+Adm <- read_excel("C:/Users/indir/Desktop/Rutgers MBA/Analytics for BI/Project/Adm.xlsx")
+```
+
+```{r}
+colnames(Adm)[colnames(Adm)=="GRE Score"] <- "GREScore"
+colnames(Adm)[colnames(Adm)=="TOEFL Score"] <- "TOEFLScore"
+colnames(Adm)[colnames(Adm)=="University Rating"] <- "UniversityRating"
+colnames(Adm)[colnames(Adm)=="Chance of Admit"] <- "ChanceofAdmit"
+colnames(Adm)
+```
+
+```{r}
+#Remove Serial No Column
+Adm<-Adm[,c(2,3,4,5,6,7,8,9)]
+```
+
+```{r}
+data <- Adm
+View(data)
+```
+
+```{r}
+#Create a new Admit column and fill it with 1 if ChanceofAdmit >0.70 else 0
+data$Admit<-ifelse(data$ChanceofAdmit>0.70,"1","0")
+data$Admit <- as.factor(data$Admit)
+View(data)
+```
+
+```{r}
+#Split data into train and test in 70-30 ratio
+Atrain<-sample(nrow(data),nrow(data)*0.70)
+data.train<-data[Atrain,]
+data.test<-data[-Atrain,]
+```
+
+```{r}
+View(data.train)
+View(data.test)
+nrow(data.train)
+nrow(data.test)
+```
+
+```{r}
+train.X = data.train[,c(1,2,3,4,5,6,7)]
+test.X = data.test[,c(1,2,3,4,5,6,7)]
+train.Admit = data.train$Admit
+test.Admit = data.test$Admit
+```
+```{r}
+View(train.X)
+View(test.X)
+View(train.Admit)
+```
+
+```{r}
+#k=2
+library(class)
+set.seed(1)
+knn.pred = knn(train.X, test.X, train.Admit, k=2)
+table2 = table(knn.pred, test.Admit)
+table2
+# Accuracy =(32+52)/(32+14+22+52)= 70%
+```
+```{r}
+#k=3
+library(class)
+set.seed(1)
+knn.pred = knn(train.X, test.X, train.Admit, k=3)
+table3 = table(knn.pred, test.Admit)
+table3
+# Accuracy = (44+55)/120 = 82.5%
+```
+
+```{r}
+#k=4
+library(class)
+set.seed(1)
+knn.pred = knn(train.X, test.X, train.Admit, k=4)
+table4 = table(knn.pred, test.Admit)
+table4
+# Accuracy = (43+55)/120= 81.7%
+```
+```{r}
+#Check only using the significant features from regression
+train2.X = data.train[,c(1,5,6,7)]
+test2.X = data.test[,c(1,5,6,7)]
+train2.Admit = data.train$Admit
+test2.Admit = data.test$Admit``
+```{r}
+#k=2
+library(class)
+set.seed(1)
+knn.pred2 = knn(train2.X, test2.X, train2.Admit, k=2)
+table22 = table(knn.pred2, test2.Admit)
+table22
+#Accuracy = 75%
+```
+
+```{r}
+#k=3
+library(class)
+set.seed(1)
+knn.pred2 = knn(train2.X, test2.X, train2.Admit, k=3)
+table23 = table(knn.pred2, test2.Admit)
+table23
+#Accuracy = 98/120 = 81.7%
+```
+
+```{r}
+#k=4
+library(class)
+set.seed(1)
+knn.pred2 = knn(train2.X, test2.X, train2.Admit, k=4)
+table24 = table(knn.pred2, test2.Admit)
+table24
+#Accuracy = 99/120 = 82.5%
+```
+```{r}
+library(gplots)
+my_palette <- colorRampPalette(c("lightblue", "lightgreen"))(n = 299)
+
+knn.pred2_heatmap <- heatmap.2(table2,Rowv=NA, Colv=NA, col=my_palette, scale="column", margins=c(5,10),cellnote=table2,notecol="black",main="Classification Matrix for K=2",xlab="Admit Test",ylab="Admit Predicted")
+```
+```{r}
+knn.pred3_heatmap <- heatmap.2(table3,Rowv=NA, Colv=NA, col=my_palette, margins=c(6,10),cellnote=table3,notecol="black",main="Classification Matrix for K=3",xlab="Admit Test",ylab="Admit Predicted")
+```
+
+```{r}
+knn.pred4_heatmap <- heatmap.2(table4,Rowv=NA, Colv=NA, col=my_palette, scale="column", margins=c(5,10),cellnote=table4,notecol="black",main="Classification Matrix for K=4",xlab="Admit Test",ylab="Admit Predicted")
+```
+

@@ -1,0 +1,241 @@
+
+```{r}
+#Load the dataset and view the data
+
+library(readxl)
+Adm <- read_excel("C:/Users/indir/Desktop/Rutgers MBA/Analytics for BI/Project/Adm.xlsx")
+View(Adm)
+head(Adm)
+```
+
+```{r}
+#Check for nulls or NAs in any of the columns in the dataset
+
+is.null(Adm)
+#is.na(Adm)
+sum(is.na(Adm))
+```
+
+```{r}
+colnames(Adm)
+```
+
+```{r}
+nrow(Adm)
+```
+```{r}
+#Rename Columns
+colnames(Adm)[colnames(Adm)=="GRE Score"] <- "GREScore"
+colnames(Adm)[colnames(Adm)=="TOEFL Score"] <- "TOEFLScore"
+colnames(Adm)[colnames(Adm)=="University Rating"] <- "UniversityRating"
+colnames(Adm)[colnames(Adm)=="Chance of Admit"] <- "ChanceofAdmit"
+colnames(Adm)
+```
+
+```{r}
+#Remove Serial No Column
+Adm<-Adm[,c(2,3,4,5,6,7,8,9)]
+View(Adm)
+```
+
+```{r}
+#Check the distribution of the dependent variable - Chance of Admit
+hist(Adm[["ChanceofAdmit"]],col= "cyan")
+
+#Slightly Skewed towards the left
+```
+```{r}
+#Split the data into Train and Test with a 70/30 ratio
+set.seed(101)
+Atrain<-sample(nrow(Adm),nrow(Adm)*0.70)
+Adm.train<-Adm[Atrain,]
+Adm.test<-Adm[-Atrain,]
+View(Adm.train)
+View(Adm.test)
+```
+
+```{r}
+#Multilinear Regression: Round1 using all columns as independent variables with Chance of Admit as dependent variable
+
+fit1 <- lm(ChanceofAdmit ~GREScore+TOEFLScore+UniversityRating+SOP+LOR+CGPA+ Research,data=Adm.train)
+summary(fit1)
+```
+```{r}
+#Multilinear Regression: Round2 using all columns as independent variables after dropping University Rating & SOP and with Chance of Admit as dependent variable
+
+fit2 <- lm(ChanceofAdmit ~ GREScore + TOEFLScore + LOR + CGPA + Research,data= Adm.train)
+summary(fit2)
+```
+```{r}
+# Renaming Col names for Adm.test
+colnames(Adm.test)[colnames(Adm.test)=="GRE Score"] <- "GREScore"
+colnames(Adm.test)[colnames(Adm.test)=="TOEFL Score"] <- "TOEFLScore"
+colnames(Adm.test)[colnames(Adm.test)=="University Rating"] <- "UniversityRating"
+colnames(Adm.test)[colnames(Adm.test)=="Chance of Admit"] <- "ChanceofAdmit"
+colnames(Adm.test)
+```
+```{r}
+#Predicting the Chance of Admit for Test Data using Fit2
+predicted_test <- predict(fit2, newdata= Adm.test)
+View(predicted_test)
+#View(Adm.test)
+#View(Adm.train)
+```
+
+```{r}
+# Compare Actuals vs Predictions and calculate correlation accuracy
+# Make actuals_predicteds dataframe.
+actuals_preds <- data.frame(cbind(actuals=Adm.test$ChanceofAdmit, predicteds=predicted_test))  
+correlation_accuracy <- cor(actuals_preds)
+correlation_accuracy #87.4%
+head(actuals_preds)
+View(actuals_preds)
+```
+
+```{r}
+#Plot Actual vs Predicted Values
+plot(actuals_preds,col="darkblue",bg="blue",main="Actuals vs Predicted")
+```
+
+```{r}
+#Residuals Analysis
+
+Adm.testresults <- Adm.test
+Adm.testresults$predicted <- predicted_test
+Adm.testresults$residual <- Adm.testresults$ChanceofAdmit - Adm.testresults$predicted
+View(Adm.testresults)
+plot(Adm.testresults$predicted,Adm.testresults$residual,xlab="Predicted",ylab="Residuals",pch=21,bg="red",col="red",main="Predicted Vs Residuals")
+abline(0,0)
+```
+```{r}
+#Residuals Histogram
+
+hist(Adm.testresults$residual,col="red",freq=FALSE)
+g = Adm.testresults$residual
+m<-mean(g)
+std<-sqrt(var(g))
+curve(dnorm(x, mean=m, sd=std), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+```
+
+```{r}
+#Residuals vs Independent Variables
+#LOR vs Residuals
+
+library(ggplot2)
+
+ggplot(Adm.testresults, aes(x = GREScore, y = ChanceofAdmit)) +
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +
+  geom_segment(aes(xend = GREScore, yend = predicted), alpha = .2) +
+
+  # > Color AND size adjustments made here...
+  geom_point(aes(color = abs(residual), size = abs(residual))) + # size also mapped
+  scale_color_continuous(low = "blue", high = "red") +
+  guides(color = FALSE, size = FALSE) +  # Size legend also removed
+  # <
+  geom_point(aes(y = predicted), shape = 1) 
+```
+
+```{r}
+#Residuals vs Independent Variables
+#LOR vs Residuals
+
+library(ggplot2)
+
+ggplot(Adm.testresults, aes(x = LOR, y = ChanceofAdmit)) +
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +
+  geom_segment(aes(xend = LOR, yend = predicted), alpha = .2) +
+
+  # > Color AND size adjustments made here...
+  geom_point(aes(color = abs(residual), size = abs(residual))) + # size also mapped
+  scale_color_continuous(low = "blue", high = "red") +
+  guides(color = FALSE, size = FALSE) +  # Size legend also removed
+  # <
+  geom_point(aes(y = predicted), shape = 1) 
+```
+```{r}
+#Residuals vs Independent Variables
+#CGPA vs Residuals
+
+library(ggplot2)
+
+ggplot(Adm.testresults, aes(x = CGPA, y = ChanceofAdmit)) +
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +
+  geom_segment(aes(xend = CGPA, yend = predicted), alpha = .2) +
+
+  # > Color AND size adjustments made here...
+  geom_point(aes(color = abs(residual), size = abs(residual))) + # size also mapped
+  scale_color_continuous(low = "blue", high = "red") +
+  guides(color = FALSE, size = FALSE) +  # Size legend also removed
+  # <
+  geom_point(aes(y = predicted), shape = 1) 
+
+```
+
+```{r}
+#Residuals vs Independent Variables
+#Research vs Residuals
+
+library(ggplot2)
+
+ggplot(Adm.testresults, aes(x = Research, y = ChanceofAdmit)) +
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +
+  geom_segment(aes(xend = Research, yend = predicted), alpha = .2) +
+
+  # > Color AND size adjustments made here...
+  geom_point(aes(color = abs(residual), size = abs(residual))) + # size also mapped
+  scale_color_continuous(low = "blue", high = "red") +
+  guides(color = FALSE, size = FALSE) +  # Size legend also removed
+  # <
+  geom_point(aes(y = predicted), shape = 1) 
+
+```
+
+```{r}
+#Using the new dataset of Adm with outliers removed
+library(readxl)
+Admv2 <- read_excel("C:/Users/indir/Desktop/Rutgers MBA/Analytics for BI/Project/Adm_wooutliers.xlsx")
+```
+
+```{r}
+#Split the data into Train and Test with a 70/30 ratio
+set.seed(101)
+Atrain<-sample(nrow(Admv2),nrow(Admv2)*0.70)
+Admv2.train<-Admv2[Atrain,]
+Admv2.test<-Admv2[-Atrain,]
+View(Admv2.train)
+View(Admv2.test)
+nrow(Admv2)
+```
+
+```{r}
+fit1 <- lm(ChanceofAdmit ~GREScore+TOEFLScore+UniversityRating+SOP+LOR+CGPA+ Research,data=Admv2.train)
+summary(fit1)
+```
+
+```{r}
+fit2 <- lm(ChanceofAdmit ~ GREScore + LOR + CGPA + Research,data= Admv2.train)
+summary(fit2)
+```
+
+```{r}
+# Compare Actuals vs Predictions and calculate correlation accuracy
+# Make actuals_predicteds dataframe.
+actuals_preds <- data.frame(cbind(actuals=Admv2.test$ChanceofAdmit, predicteds=predicted_test))  
+correlation_accuracy <- cor(actuals_preds)
+correlation_accuracy
+head(actuals_preds)
+View(actuals_preds)
+
+```
+
+```{r}
+fit3 <- lm(ChanceofAdmit ~ GREScore + TOEFLScore + LOR + CGPA + Research,data= Admv2.train)
+summary(fit3)
+```
+
+```{r}
+predicted_uc <- predict(fit2, newdata= data.frame(GREScore = 312,TOEFLScore = 108,LOR = 3.2, CGPA = 8.55, Research = 1))
+predicted_uc
+```
+

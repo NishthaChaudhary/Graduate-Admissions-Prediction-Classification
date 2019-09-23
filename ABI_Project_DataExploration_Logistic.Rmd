@@ -1,0 +1,245 @@
+
+Uploading the Data set
+```{r setup, include=FALSE}
+ library(readxl)
+ Adm <- read_excel("Adm.xlsx")
+ View(Adm)
+```
+
+Analyzing the data
+```{r cars}
+dim(Adm)
+```
+
+
+```{r pressure, echo=FALSE}
+str(Adm)
+```
+Summary of the data
+```{r}
+summary(Adm)
+```
+Checking for null values
+```{r}
+sum(is.na(Adm))
+```
+Data distribution of values
+```{r}
+par(mfrow=c(2,2))
+         hist(Adm$GRE.Score, col = "navy blue")
+         hist(Adm$TOEFL.Score, col = "maroon")
+         hist(Adm$CGPA, col = "green")
+         hist(Adm$University.Rating, col = "yellow")
+```
+Checking various parameters with respect to each other
+```{r}
+library(fpp2)
+ ggplot(Adm,aes(x=GRE.Score,y=Chance.of.Admit,col=Research))+geom_point()+ggtitle("Chances of Admit vs Gre Score based on Research")
+         
+         
+         
+```
+
+```{r}
+ggplot(Adm,aes(x=GRE.Score,y=Chance.of.Admit,col=SOP))+geom_point()
+```
+```{r}
+ ggplot(Adm,aes(x=LOR,y=Chance.of.Admit))+geom_point(colour='maroon')
+```
+
+```{r}
+ggplot(Adm,aes(x=GRE.Score,y=TOEFL.Score,col=Chance.of.Admit))+geom_point()
+         
+         
+```
+ Box-plot
+```{r}
+ ggplot(data=Adm[!is.na(Adm$Chance.of.Admit),], aes(x=factor(Research), y=Chance.of.Admit))+ geom_boxplot(col='green') + labs(x='Research ') +
+  scale_y_continuous(breaks= seq(0, 800000, by=100000))
+```
+ 
+ Density graph
+```{r}
+Adm$University.Rating <- factor(  Adm$University.Rating)
+         ggplot(Adm, aes(x = Chance.of.Admit, fill = University.Rating)) + geom_density(alpha = 0.15)
+         
+```
+
+`Linear Relationship amongst the variables
+```{r}
+ install.packages("lattice")
+         require(lattice)
+         require(ggplot2)
+         pairs(Adm, pch=21) 
+```
+ Correlation graph
+```{r}
+install.packages("corrplot")
+         library(corrplot)
+         
+         C<-cor(Adm)
+         corrplot(C,method='number')         
+         
+```
+
+#Logistic Regression
+
+```{r cars}
+library(readxl)
+Adm <- read_excel("C:/Users/nisht/Desktop/MITA/ABI/Adm.xlsx")
+#View(Adm)
+head(Adm)
+```
+
+```{r}
+dummy<-Adm
+head(dummy)
+```
+Data Exploration
+
+```{r}
+library(dplyr)
+summary(Adm)
+```
+
+```{r}
+sum(is.na(Adm))
+```
+
+```{r}
+str(Adm)
+```
+
+Adding a new Column 'Admit'
+
+```{r}
+Adm$Admit<-ifelse(data$`Chance of Admit`>0.70,"1","0")
+Adm$Admit <- as.factor(Adm$Admit)
+summary(Adm)
+
+```
+
+#Splitting test and train data
+```{r}
+#REmoving 1st column as serial number does not serve any purpose
+Adm<-Adm[,c(2,3,4,5,6,7,8,9,10)]
+Atrain<-sample(nrow(Adm),nrow(Adm)*0.70)
+Adm.train<-Adm[Atrain,]
+Adm.test<-Adm[-Atrain,]
+```
+
+View Train
+
+```{r}
+str(Adm.train)
+```
+
+View Test
+
+```{r}
+str(Adm.test)
+```
+#Logistic regression fir
+
+```{r}
+
+glm.fit1<- glm(Admit~`GRE Score`+`TOEFL Score` + `University Rating` + SOP + LOR + CGPA + Research, data=Adm.train , family = binomial)
+summary(glm.fit1)
+
+
+```
+
+
+#removing SOP and University Rating and Again fitting the model
+
+```{r}
+glm.fit2=glm(Admit~`GRE Score` +`TOEFL Score` + LOR + CGPA + Research, data=Adm.train , family = binomial)
+summary(glm.fit2)
+```
+
+#Removing TOEFL SCore and further fitting the model
+
+```{r}
+glm.fit3=glm(Admit~`GRE Score` + LOR + CGPA + Research, data=Adm.train , family = binomial)
+summary(glm.fit3)
+```
+
+Confusion Matrix
+
+```{r}
+predbos = predict(glm.fit3,Adm.test, type = "response")
+predbos.glm <- rep(0, length(predbos))
+predbos.glm[predbos > 0.5] <- 1
+accuracy <- table(predbos.glm, Adm.test$Admit)
+accuracy
+```
+Error Rate of model
+
+```{r}
+mean(predbos.glm != Adm.test$Admit)
+```
+
+How good is the model?
+
+```{r}
+sum(diag(accuracy))/sum(accuracy)
+```
+
+Plot Confusion Matrix
+
+```{r pressure, echo=FALSE}
+Predicted<-predbos.glm
+Actual<-Adm.test$Admit
+confusion_matrix <- as.data.frame(table(Predicted, Actual))
+ggplot(data = confusion_matrix,
+       mapping = aes(x = Predicted,
+                     y = Actual)) +
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "sea green",
+                      high = "green",
+                      trans = "log")
+```
+
+
+```{r}
+#fit_glm <- glm(bad_widget ~ x, training_set, family=binomial(link="logit"))
+#glm_link_scores <- predict(fit_glm, test_set, type="link")
+#glm_response_scores <- predict(fit_glm, test_set, type="response")
+
+glm_link_scores <- predict(glm.fit3, Adm.test, type="link")
+glm_response_scores = predict(glm.fit3,Adm.test, type = "response")
+#predbos.glm <- rep(0, length(predbos))
+#predbos.glm[predbos > 0.5] <- 1
+#accuracy <- table(predbos.glm, Adm.test$Admit)
+#accuracy
+
+score_data <- data.frame(link=glm_link_scores, 
+                         response=glm_response_scores,
+                         Admit=Adm.test$Admit,
+                         stringsAsFactors=FALSE)
+
+score_data %>% 
+  ggplot(aes(x=link, y=response, col=Admit)) + 
+  scale_color_manual(values=c("black", "red")) + 
+  geom_point() + 
+  geom_rug() + 
+  ggtitle("Both link and response scores put cases in the same order")
+```
+#ROC Curve
+
+```{r}
+install.packages("pROC")
+library(pROC)
+plot(roc(Adm.test$Admit, glm_response_scores, direction="<"),
+     col="yellow", lwd=3, main="AUC-ROC")
+```
+
+```{r}
+library(PRROC)
+
+PRROC_obj <- roc.curve(scores.class0 = Adm.test$Admit, weights.class0=glm_response_scores,
+                       curve=TRUE)
+plot(PRROC_obj)
+```
+
